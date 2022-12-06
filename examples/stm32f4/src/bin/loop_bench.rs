@@ -11,6 +11,7 @@ use cortex_m::peripheral::{DCB, DWT};
 use defmt::*;
 use embassy_executor::Spawner;
 use embassy_futures::yield_now;
+use embassy_stm32::pac;
 use embassy_stm32::time::mhz;
 use embassy_time::{Duration, Instant, Timer};
 use {defmt_rtt as _, panic_probe as _};
@@ -60,9 +61,18 @@ async fn stateThread() {
 #[embassy_executor::main]
 async fn main(spawner: Spawner) {
     let mut config = embassy_stm32::Config::default();
-    config.rcc.sys_ck = Some(mhz(100));
+    config.rcc.sys_ck = Some(mhz(50));
     config.rcc.pclk1 = Some(mhz(50));
     let _p = embassy_stm32::init(config);
+
+    unsafe {
+        pac::FLASH.acr().modify(|w| {
+            w.set_dcen(true);
+            w.set_icen(true);
+            w.set_prften(true);
+        });
+    }
+
     info!("Hello World!");
 
     spawner.spawn(incrementTask()).unwrap();
